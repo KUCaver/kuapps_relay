@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { apiClient } from '@/lib/api';
+import { createPlant } from '@/lib/api';
+import { uploadImage } from '@/lib/supabase';
 
 export default function NewPlantPage() {
   const router = useRouter();
@@ -14,27 +15,32 @@ export default function NewPlantPage() {
     locationName: '',
     latitude: 37.540,
     longitude: 127.079,
-    mainImageUrl: ''
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!imageFile) return alert('사진을 선택해주세요.');
     setLoading(true);
     try {
-      // In MVP, generate a fake QR using goqr.me API
+      const imageUrl = await uploadImage(imageFile, 'plants');
+
       const plantData = {
         ...form,
+        mainImageUrl: imageUrl,
         allowedRadiusMeter: 50,
         thresholdHours: 24,
         qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=plant-${Date.now()}`
       };
-      
-      await apiClient.post('/api/admin/plants', plantData);
+
+      await createPlant(plantData);
       alert('식물이 등록되었습니다.');
       router.push('/admin');
     } catch (err) {
-      alert('등록 실패');
+      console.error(err);
+      alert('등록 실패: 이미지 업로드를 확인해주세요.');
     } finally {
       setLoading(false);
     }
@@ -64,17 +70,17 @@ export default function NewPlantPage() {
         </div>
         <div className="flex items-center justify-between mt-2 mb-1">
           <label className="block text-sm font-medium text-slate-700">위치 좌표 (위도/경도)</label>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => {
               if (!navigator.geolocation) return alert('위치 정보를 지원하지 않습니다.');
               navigator.geolocation.getCurrentPosition(pos => {
                 setForm(prev => ({...prev, latitude: pos.coords.latitude, longitude: pos.coords.longitude}));
               }, () => alert('스마트폰(또는 PC)의 위치 권한을 허용해주세요.'));
-            }} 
+            }}
             className="text-xs bg-green-100 text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-200 transition"
           >
-            📍 내 현재 위치로 채우기
+            내 현재 위치로 채우기
           </button>
         </div>
         <div className="flex gap-2">
@@ -82,26 +88,27 @@ export default function NewPlantPage() {
           <input required type="number" step="0.000001" name="longitude" value={form.longitude} onChange={handleChange} className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-green-500" placeholder="경도" />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">대표 사진 업로드 (스마트폰 갤러리/앨범)</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">대표 사진 업로드</label>
           <input required type="file" accept="image/*" onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) {
+              setImageFile(file);
               const reader = new FileReader();
-              reader.onloadend = () => setForm(prev => ({ ...prev, mainImageUrl: reader.result as string }));
+              reader.onloadend = () => setImagePreview(reader.result as string);
               reader.readAsDataURL(file);
             }
           }} className="w-full p-2 rounded-xl border border-slate-200 bg-white focus:outline-none focus:border-green-500 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100" />
-          {form.mainImageUrl && form.mainImageUrl.startsWith('data:image') && (
-            <div className="mt-2 text-xs text-green-600 font-semibold">✅ 갤러리 사진 첨부 완료!</div>
+          {imagePreview && (
+            <img src={imagePreview} alt="미리보기" className="mt-2 w-full h-48 object-cover rounded-xl" />
           )}
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">식물 설명</label>
           <textarea required name="description" value={form.description} onChange={handleChange} className="w-full p-3 rounded-xl border border-slate-200 focus:outline-none focus:border-green-500" rows={3} placeholder="식물에 대한 소개글을 적어주세요." />
         </div>
-        
-        <button type="submit" disabled={loading} className="mt-4 w-full bg-slate-900 text-white font-semibold py-4 rounded-xl shadow-lg active:scale-[0.98] transition">
-          {loading ? '등록 중...' : '식물 등록하기'}
+
+        <button type="submit" disabled={loading} className="mt-4 w-full bg-slate-900 text-white font-semibold py-4 rounded-xl shadow-lg active:scale-[0.98] transition disabled:opacity-70">
+          {loading ? '업로드 중...' : '식물 등록하기'}
         </button>
       </form>
     </main>

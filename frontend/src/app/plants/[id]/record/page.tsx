@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Camera as CameraIcon } from 'lucide-react';
 import { createPlantLog, getPlantById } from '@/lib/api';
+import { uploadImage, dataUrlToFile } from '@/lib/supabase';
 
 export default function RecordPage() {
   const { id } = useParams();
@@ -90,14 +91,15 @@ export default function RecordPage() {
   const handleSubmit = async () => {
     if (!photo) return alert('사진을 먼저 촬영해주세요.');
     setSubmitting(true);
-    
-    // MVP: In real app, upload photo to S3 here. 
-    // We pass base64 directly, careful with size limits on server.
+
     const coords = await extractCoords();
-    
+
     try {
+      const file = await dataUrlToFile(photo);
+      const imageUrl = await uploadImage(file, 'logs');
+
       const res = await createPlantLog(Number(id), {
-        imageUrl: photo, 
+        imageUrl,
         latitude: coords?.lat,
         longitude: coords?.lng,
         watered,
