@@ -1,5 +1,6 @@
 package com.relaybloom.dto;
 
+import com.relaybloom.entity.ValidationStatus;
 import lombok.Builder;
 import lombok.Data;
 
@@ -19,5 +20,6 @@ public class PlantLogDto {
     private String issueNote;
     private String relayMessage;
     private Integer guardianOrder;
+    private ValidationStatus validationStatus;
     private LocalDateTime createdAt;
 }

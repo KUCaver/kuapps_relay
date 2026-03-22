@@ -16,7 +16,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === '쿨라워24' || password === 'znffkdnj24') {
+    const adminPw = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'znffkdnj24';
+    if (password === adminPw) {
       sessionStorage.setItem('relay_admin_auth', 'true');
       setIsAuthenticated(true);
     } else {

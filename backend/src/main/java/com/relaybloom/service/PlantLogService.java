@@ -5,6 +5,7 @@ import com.relaybloom.dto.PlantLogRequest;
 import com.relaybloom.entity.Plant;
 import com.relaybloom.entity.PlantLog;
 import com.relaybloom.entity.Status;
+import com.relaybloom.entity.ValidationStatus;
 import com.relaybloom.repository.PlantLogRepository;
 import com.relaybloom.repository.PlantRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,15 +30,15 @@ public class PlantLogService {
 
     public PlantLogDto getLogById(Long id) {
         PlantLog log = plantLogRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("PlantLog not found"));
+                .orElseThrow(() -> new RuntimeException("PlantLog not found: " + id));
         return convertToDto(log);
     }
 
     @Transactional
     public PlantLogDto createLog(Long plantId, PlantLogRequest request) {
         Plant plant = plantRepository.findById(plantId)
-                .orElseThrow(() -> new RuntimeException("Plant not found"));
-        
+                .orElseThrow(() -> new RuntimeException("Plant not found: " + plantId));
+
         if (request.getWatered() != null && request.getWatered()) {
             plant.setCurrentStatus(Status.NORMAL);
         } else if (request.getHasIssue() != null && request.getHasIssue()) {
@@ -65,6 +66,22 @@ public class PlantLogService {
         return convertToDto(log);
     }
 
+    @Transactional
+    public void deleteLog(Long id) {
+        if (!plantLogRepository.existsById(id)) {
+            throw new RuntimeException("PlantLog not found: " + id);
+        }
+        plantLogRepository.deleteById(id);
+    }
+
+    @Transactional
+    public PlantLogDto validateLog(Long id, ValidationStatus status) {
+        PlantLog log = plantLogRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("PlantLog not found: " + id));
+        log.setValidationStatus(status);
+        return convertToDto(plantLogRepository.save(log));
+    }
+
     private PlantLogDto convertToDto(PlantLog log) {
         return PlantLogDto.builder()
                 .id(log.getId())
@@ -78,6 +95,7 @@ public class PlantLogService {
                 .issueNote(log.getIssueNote())
                 .relayMessage(log.getRelayMessage())
                 .guardianOrder(log.getGuardianOrder())
+                .validationStatus(log.getValidationStatus())
                 .createdAt(log.getCreatedAt())
                 .build();
     }

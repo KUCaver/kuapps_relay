@@ -23,6 +23,11 @@ export default function NewPlantPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!imageFile) return alert('사진을 선택해주세요.');
+    if (imageFile.size > 10 * 1024 * 1024) return alert('10MB 이하의 이미지만 업로드 가능합니다.');
+    const lat = Number(form.latitude);
+    const lng = Number(form.longitude);
+    if (lat < -90 || lat > 90) return alert('위도는 -90 ~ 90 범위여야 합니다.');
+    if (lng < -180 || lng > 180) return alert('경도는 -180 ~ 180 범위여야 합니다.');
     setLoading(true);
     try {
       const imageUrl = await uploadImage(imageFile, 'plants');

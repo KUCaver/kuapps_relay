@@ -5,14 +5,20 @@ import Link from 'next/link';
 import { ArrowLeft, Plus, AlertCircle, Trash2, RefreshCw } from 'lucide-react';
 import { getPlants, deletePlant, changePlantStatus } from '@/lib/api';
 import { PlantStatusBadge } from '@/components/PlantStatusBadge';
+import type { Plant } from '@/lib/types';
 
 export default function AdminDashboard() {
-  const [plants, setPlants] = useState<any[]>([]);
+  const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchPlants = () => {
     setLoading(true);
-    getPlants().then(setPlants).finally(() => setLoading(false));
+    setError(null);
+    getPlants()
+      .then(setPlants)
+      .catch(() => setError('식물 목록을 불러올 수 없습니다.'))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchPlants(); }, []);
@@ -73,6 +79,11 @@ export default function AdminDashboard() {
 
         {loading ? (
           <div className="text-center text-slate-400 py-8">로딩 중...</div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-red-500 text-sm mb-3">{error}</p>
+            <button onClick={fetchPlants} className="text-sm text-green-600 underline">다시 시도</button>
+          </div>
         ) : plants.length === 0 ? (
           <div className="text-center text-slate-400 py-8">등록된 식물이 없습니다.</div>
         ) : (

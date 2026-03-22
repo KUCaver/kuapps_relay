@@ -2,33 +2,36 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Check, Camera as CameraIcon } from 'lucide-react';
+import { ArrowLeft, Check, Camera as CameraIcon, ImagePlus } from 'lucide-react';
 import { createPlantLog, getPlantById } from '@/lib/api';
 import { uploadImage, dataUrlToFile } from '@/lib/supabase';
+import type { Plant } from '@/lib/types';
 
 export default function RecordPage() {
   const { id } = useParams();
   const router = useRouter();
-  
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [plant, setPlant] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [plant, setPlant] = useState<Plant | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
-  
+  const [cameraError, setCameraError] = useState(false);
+
   // Form State
   const [watered, setWatered] = useState(false);
   const [isHealthy, setIsHealthy] = useState(false);
   const [hasIssue, setHasIssue] = useState(false);
   const [issueNote, setIssueNote] = useState('');
   const [relayMessage, setRelayMessage] = useState('');
-  
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (id) {
-      getPlantById(Number(id)).then(setPlant).finally(() => setLoading(false));
+      getPlantById(Number(id)).then(setPlant).catch(() => {}).finally(() => setLoading(false));
     }
   }, [id]);
 
@@ -43,12 +46,12 @@ export default function RecordPage() {
         video: { facingMode: 'environment' }
       });
       setStream(mediaStream);
+      setCameraError(false);
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
-    } catch (err) {
-      console.error("Camera access denied", err);
-      // Fallback behavior could be added here
+    } catch {
+      setCameraError(true);
     }
   };
 
@@ -62,19 +65,35 @@ export default function RecordPage() {
     if (videoRef.current && canvasRef.current) {
       const context = canvasRef.current.getContext('2d');
       if (context) {
-        // Match actual video dimensions
         canvasRef.current.width = videoRef.current.videoWidth;
         canvasRef.current.height = videoRef.current.videoHeight;
         context.drawImage(videoRef.current, 0, 0);
-        setPhoto(canvasRef.current.toDataURL('image/jpeg', 0.8)); // 0.8 quality to save size
+        setPhoto(canvasRef.current.toDataURL('image/jpeg', 0.8));
         stopCamera();
       }
     }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      alert('10MB 이하의 이미지만 업로드 가능합니다.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhoto(reader.result as string);
+      stopCamera();
+    };
+    reader.readAsDataURL(file);
+  };
+
   const retake = () => {
     setPhoto(null);
-    startCamera();
+    if (!cameraError) {
+      startCamera();
+    }
   };
 
   const extractCoords = (): Promise<{lat: number, lng: number} | null> => {
@@ -82,7 +101,7 @@ export default function RecordPage() {
       if (!navigator.geolocation) return resolve(null);
       navigator.geolocation.getCurrentPosition(
         pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        err => resolve(null),
+        () => resolve(null),
         { enableHighAccuracy: true }
       );
     });
@@ -100,18 +119,18 @@ export default function RecordPage() {
 
       const res = await createPlantLog(Number(id), {
         imageUrl,
-        latitude: coords?.lat,
-        longitude: coords?.lng,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lng ?? null,
         watered,
         isHealthy,
         hasIssue,
         issueNote,
         relayMessage
       });
-      
+
       router.push(`/logs/${res.id}`);
-    } catch (err) {
-      alert("업로드 실패");
+    } catch {
+      alert("업로드 실패: 이미지 업로드를 확인해주세요.");
       setSubmitting(false);
     }
   };
@@ -132,21 +151,55 @@ export default function RecordPage() {
       <div className="flex-1 relative bg-slate-900 overflow-hidden -mt-[72px]">
         {!photo ? (
           <>
-            <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-            {plant?.mainImageUrl && (
-              <img src={plant.mainImageUrl} className="ghost-overlay" alt="ghost overlay" />
+            {cameraError ? (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-8">
+                <p className="text-sm text-slate-400 text-center">
+                  카메라에 접근할 수 없습니다.<br/>갤러리에서 사진을 선택해주세요.
+                </p>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-green-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2"
+                >
+                  <ImagePlus className="w-5 h-5" />
+                  갤러리에서 선택
+                </button>
+              </div>
+            ) : (
+              <>
+                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                {plant?.mainImageUrl && (
+                  <img src={plant.mainImageUrl} className="ghost-overlay" alt="ghost overlay" />
+                )}
+                <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-6 z-20">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-12 h-12 bg-white/20 rounded-full border-2 border-white/50 flex items-center justify-center backdrop-blur-sm"
+                    title="갤러리에서 선택"
+                  >
+                    <ImagePlus className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={takePhoto}
+                    className="w-16 h-16 bg-white/20 rounded-full border-4 border-white shadow-xl flex items-center justify-center backdrop-blur-sm"
+                  >
+                    <div className="w-12 h-12 bg-white rounded-full border-2 border-slate-200" />
+                  </button>
+                  <div className="w-12" />
+                </div>
+              </>
             )}
-            <button 
-              onClick={takePhoto}
-              className="absolute bottom-12 left-1/2 -translate-x-1/2 w-16 h-16 bg-white/20 rounded-full border-4 border-white shadow-xl flex items-center justify-center backdrop-blur-sm z-20"
-            >
-              <div className="w-12 h-12 bg-white rounded-full border-2 border-slate-200" />
-            </button>
           </>
         ) : (
           <img src={photo} className="w-full h-full object-cover" alt="captured" />
         )}
         <canvas ref={canvasRef} className="hidden" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
       </div>
 
       {/* Form Area */}
@@ -184,7 +237,7 @@ export default function RecordPage() {
           </div>
 
           {hasIssue && (
-            <textarea 
+            <textarea
               placeholder="어떤 특이사항이 있나요? (예: 잎이 시들었어요)"
               className="w-full text-sm p-3 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-green-500"
               value={issueNote}
@@ -192,14 +245,14 @@ export default function RecordPage() {
             />
           )}
 
-          <textarea 
+          <textarea
             placeholder="다음 수호자에게 한 줄 메시지 남기기"
             className="w-full text-sm p-3 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:border-green-500 mt-2"
             value={relayMessage}
             onChange={e => setRelayMessage(e.target.value)}
           />
 
-          <button 
+          <button
             onClick={handleSubmit}
             disabled={submitting}
             className="w-full mt-2 bg-green-600 text-white font-semibold flex items-center justify-center gap-2 py-3.5 rounded-xl shadow-lg shadow-green-600/20 active:scale-[0.98] transition disabled:opacity-70"

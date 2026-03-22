@@ -18,6 +18,7 @@ public class PlantDto {
     private Integer allowedRadiusMeter;
     private Status currentStatus;
     private String mainImageUrl;
+    private Integer thresholdHours;
     private String qrCodeUrl;
     private LocalDateTime updatedAt;
 }
