@@ -1,0 +1,19 @@
+# Node (Frontend)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/pwa/
+
+# Spring Boot (Backend)
+backend/build/
+backend/.gradle/
+backend/out/
+
+# Claude Code
+.claude/
+
+# IDE / OS
+.idea/
+.vscode/
+*.DS_Store
+Thumbs.db
