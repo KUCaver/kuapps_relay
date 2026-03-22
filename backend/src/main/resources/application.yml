@@ -4,9 +4,9 @@ spring:
   
   datasource:
     # Production Database (Supabase PostgreSQL)
-    url: jdbc:postgresql://db.kqbriwuqfxnryawqjzuh.supabase.co:5432/postgres
+    url: jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres
     driverClassName: org.postgresql.Driver
-    username: postgres
+    username: postgres.kqbriwuqfxnryawqjzuh
     password: "kubase:rlaskagnsvosalxld"
   
   sql:
