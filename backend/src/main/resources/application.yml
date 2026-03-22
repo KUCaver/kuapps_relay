@@ -7,7 +7,7 @@ spring:
     url: jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres
     driverClassName: org.postgresql.Driver
     username: "postgres.kqbriwuqfxnryawqjzuh"
-    password: "kubase:rlaskagnsvosalxld"
+    password: "rlaskagnsvosalxld"
   
   sql:
     init:
