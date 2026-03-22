@@ -18,6 +18,7 @@ export default function RecordPage() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState(false);
+  const [plantError, setPlantError] = useState(false);
 
   // Form State
   const [watered, setWatered] = useState(false);
@@ -31,7 +32,10 @@ export default function RecordPage() {
 
   useEffect(() => {
     if (id) {
-      getPlantById(Number(id)).then(setPlant).catch(() => {}).finally(() => setLoading(false));
+      getPlantById(Number(id))
+        .then(setPlant)
+        .catch(() => setPlantError(true))
+        .finally(() => setLoading(false));
     }
   }, [id]);
 
@@ -130,12 +134,24 @@ export default function RecordPage() {
 
       router.push(`/logs/${res.id}`);
     } catch {
-      alert("업로드 실패: 이미지 업로드를 확인해주세요.");
-      setSubmitting(false);
+      stopCamera();
+      const goHome = confirm('업로드에 실패했습니다. 식물이 삭제되었거나 서버에 문제가 있을 수 있습니다.\n\n메인 화면으로 이동하시겠습니까?');
+      if (goHome) {
+        router.push('/');
+      } else {
+        setSubmitting(false);
+      }
     }
   };
 
   if (loading) return <div className="p-8 text-center text-slate-500">로딩 중...</div>;
+
+  if (plantError) return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8">
+      <p className="text-red-500 text-sm mb-4">식물 정보를 불러올 수 없습니다. 삭제되었거나 존재하지 않는 식물입니다.</p>
+      <button onClick={() => router.push('/')} className="text-sm bg-slate-900 text-white px-4 py-2 rounded-xl">메인으로 이동</button>
+    </div>
+  );
 
   return (
     <main className="min-h-screen bg-black text-white flex flex-col">

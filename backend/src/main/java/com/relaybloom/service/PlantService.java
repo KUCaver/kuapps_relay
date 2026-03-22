@@ -1,8 +1,10 @@
 package com.relaybloom.service;
 
+import com.relaybloom.dto.CreatePlantRequest;
 import com.relaybloom.dto.PlantDto;
 import com.relaybloom.entity.Plant;
 import com.relaybloom.entity.Status;
+import com.relaybloom.repository.PlantLogRepository;
 import com.relaybloom.repository.PlantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import java.util.stream.Collectors;
 public class PlantService {
 
     private final PlantRepository plantRepository;
+    private final PlantLogRepository plantLogRepository;
 
     public List<PlantDto> getAllPlants() {
         return plantRepository.findAll().stream()
@@ -30,33 +33,43 @@ public class PlantService {
     }
 
     @Transactional
-    public PlantDto createPlant(Plant plant) {
-        plant.setCurrentStatus(Status.NORMAL);
+    public PlantDto createPlant(CreatePlantRequest request) {
+        Plant plant = Plant.builder()
+                .name(request.getName())
+                .description(request.getDescription())
+                .locationName(request.getLocationName())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .allowedRadiusMeter(request.getAllowedRadiusMeter())
+                .thresholdHours(request.getThresholdHours())
+                .mainImageUrl(request.getMainImageUrl())
+                .qrCodeUrl(request.getQrCodeUrl())
+                .currentStatus(Status.NORMAL)
+                .build();
         return convertToDto(plantRepository.save(plant));
     }
 
     @Transactional
-    public PlantDto updatePlant(Long id, Plant updated) {
+    public PlantDto updatePlant(Long id, CreatePlantRequest request) {
         Plant plant = plantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Plant not found: " + id));
-        if (updated.getName() != null) plant.setName(updated.getName());
-        if (updated.getDescription() != null) plant.setDescription(updated.getDescription());
-        if (updated.getLocationName() != null) plant.setLocationName(updated.getLocationName());
-        if (updated.getLatitude() != null) plant.setLatitude(updated.getLatitude());
-        if (updated.getLongitude() != null) plant.setLongitude(updated.getLongitude());
-        if (updated.getAllowedRadiusMeter() != null) plant.setAllowedRadiusMeter(updated.getAllowedRadiusMeter());
-        if (updated.getThresholdHours() != null) plant.setThresholdHours(updated.getThresholdHours());
-        if (updated.getMainImageUrl() != null) plant.setMainImageUrl(updated.getMainImageUrl());
-        if (updated.getCurrentStatus() != null) plant.setCurrentStatus(updated.getCurrentStatus());
+        if (request.getName() != null) plant.setName(request.getName());
+        if (request.getDescription() != null) plant.setDescription(request.getDescription());
+        if (request.getLocationName() != null) plant.setLocationName(request.getLocationName());
+        if (request.getLatitude() != null) plant.setLatitude(request.getLatitude());
+        if (request.getLongitude() != null) plant.setLongitude(request.getLongitude());
+        if (request.getAllowedRadiusMeter() != null) plant.setAllowedRadiusMeter(request.getAllowedRadiusMeter());
+        if (request.getThresholdHours() != null) plant.setThresholdHours(request.getThresholdHours());
+        if (request.getMainImageUrl() != null) plant.setMainImageUrl(request.getMainImageUrl());
         return convertToDto(plantRepository.save(plant));
     }
 
     @Transactional
     public void deletePlant(Long id) {
-        if (!plantRepository.existsById(id)) {
-            throw new RuntimeException("Plant not found: " + id);
-        }
-        plantRepository.deleteById(id);
+        Plant plant = plantRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Plant not found: " + id));
+        // cascade로 관련 로그도 함께 삭제
+        plantRepository.delete(plant);
     }
 
     @Transactional

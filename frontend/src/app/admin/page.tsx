@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, AlertCircle, Trash2, RefreshCw } from 'lucide-react';
 import { getPlants, deletePlant, changePlantStatus } from '@/lib/api';
 import { PlantStatusBadge } from '@/components/PlantStatusBadge';
 import type { Plant } from '@/lib/types';
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [plants, setPlants] = useState<Plant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,16 +31,18 @@ export default function AdminDashboard() {
       await deletePlant(id);
       setPlants(prev => prev.filter(p => p.id !== id));
     } catch {
-      alert('삭제 실패');
+      alert('삭제에 실패했습니다. 목록을 새로고침합니다.');
+      fetchPlants();
     }
   };
 
   const handleStatusChange = async (id: number, status: string) => {
     try {
-      await changePlantStatus(id, status);
-      fetchPlants();
+      const updated = await changePlantStatus(id, status);
+      setPlants(prev => prev.map(p => p.id === id ? { ...p, currentStatus: updated.currentStatus } : p));
     } catch {
-      alert('상태 변경 실패');
+      alert('상태 변경에 실패했습니다. 해당 식물이 삭제되었을 수 있습니다.');
+      fetchPlants();
     }
   };
 
@@ -82,7 +86,10 @@ export default function AdminDashboard() {
         ) : error ? (
           <div className="text-center py-8">
             <p className="text-red-500 text-sm mb-3">{error}</p>
-            <button onClick={fetchPlants} className="text-sm text-green-600 underline">다시 시도</button>
+            <div className="flex justify-center gap-3">
+              <button onClick={fetchPlants} className="text-sm text-green-600 underline">다시 시도</button>
+              <button onClick={() => router.push('/')} className="text-sm text-slate-500 underline">메인으로 이동</button>
+            </div>
           </div>
         ) : plants.length === 0 ? (
           <div className="text-center text-slate-400 py-8">등록된 식물이 없습니다.</div>

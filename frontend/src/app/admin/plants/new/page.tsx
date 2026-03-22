@@ -45,7 +45,8 @@ export default function NewPlantPage() {
       router.push('/admin');
     } catch (err) {
       console.error(err);
-      alert('등록 실패: 이미지 업로드를 확인해주세요.');
+      const goAdmin = confirm('등록에 실패했습니다. 이미지 업로드 또는 서버 연결을 확인해주세요.\n\n관리자 페이지로 돌아가시겠습니까?');
+      if (goAdmin) router.push('/admin');
     } finally {
       setLoading(false);
     }

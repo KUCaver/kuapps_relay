@@ -46,7 +46,7 @@ public class Plant {
 
     private String qrCodeUrl;
 
-    @OneToMany(mappedBy = "plant", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "plant", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PlantLog> logs = new ArrayList<>();
 

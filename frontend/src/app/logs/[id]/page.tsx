@@ -33,9 +33,12 @@ export default function LogCompletePage() {
 
   if (loading) return <div className="p-8 text-center text-slate-500">생성 중...</div>;
   if (error) return (
-    <div className="p-8 text-center">
-      <p className="text-red-500 text-sm mb-3">{error}</p>
-      <button onClick={fetchData} className="text-sm text-green-600 underline">다시 시도</button>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8">
+      <p className="text-red-500 text-sm mb-4">{error}</p>
+      <div className="flex gap-3">
+        <button onClick={fetchData} className="text-sm text-green-600 underline">다시 시도</button>
+        <button onClick={() => router.push('/')} className="text-sm bg-slate-900 text-white px-4 py-2 rounded-xl">메인으로 이동</button>
+      </div>
     </div>
   );
 

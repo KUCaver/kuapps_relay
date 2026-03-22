@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Camera, Clock } from 'lucide-react';
 import { getPlantById, getPlantLogs } from '@/lib/api';
@@ -14,6 +14,7 @@ const PLACEHOLDER_IMG = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/s
 
 export default function PlantDetailPage() {
   const { id } = useParams();
+  const router = useRouter();
   const [plant, setPlant] = useState<Plant | null>(null);
   const [logs, setLogs] = useState<PlantLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +32,7 @@ export default function PlantDetailPage() {
         setPlant(plantData);
         setLogs(logsData);
       })
-      .catch(() => setError('식물 정보를 불러올 수 없습니다.'))
+      .catch(() => setError('식물 정보를 불러올 수 없습니다. 삭제되었거나 존재하지 않는 식물입니다.'))
       .finally(() => setLoading(false));
   };
 
@@ -39,9 +40,12 @@ export default function PlantDetailPage() {
 
   if (loading) return <div className="p-8 text-center text-slate-500">로딩 중...</div>;
   if (error || !plant) return (
-    <div className="p-8 text-center">
-      <p className="text-red-500 text-sm mb-3">{error || '식물 정보를 불러올 수 없습니다.'}</p>
-      <button onClick={fetchData} className="text-sm text-green-600 underline">다시 시도</button>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8">
+      <p className="text-red-500 text-sm mb-4">{error || '식물 정보를 불러올 수 없습니다.'}</p>
+      <div className="flex gap-3">
+        <button onClick={fetchData} className="text-sm text-green-600 underline">다시 시도</button>
+        <button onClick={() => router.push('/')} className="text-sm bg-slate-900 text-white px-4 py-2 rounded-xl">메인으로 이동</button>
+      </div>
     </div>
   );
 
