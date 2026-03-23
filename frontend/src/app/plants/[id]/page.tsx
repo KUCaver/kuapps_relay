@@ -100,7 +100,7 @@ export default function PlantDetailPage() {
                           {log.guardianOrder}번째 수호자
                         </span>
                         <span className="text-[10px] text-slate-400">
-                          {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: ko })}
+                          {formatDistanceToNow(log.createdAt.endsWith('Z') ? new Date(log.createdAt) : new Date(log.createdAt + '+09:00'), { addSuffix: true, locale: ko })}
                         </span>
                       </div>
 
