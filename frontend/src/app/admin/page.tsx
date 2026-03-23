@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, AlertCircle, Trash2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Plus, AlertCircle, Trash2, RefreshCw, Image } from 'lucide-react';
 import { getPlants, deletePlant, changePlantStatus } from '@/lib/api';
 import { PlantStatusBadge } from '@/components/PlantStatusBadge';
 import type { Plant } from '@/lib/types';
@@ -101,13 +101,22 @@ export default function AdminDashboard() {
                   <Link href={`/plants/${p.id}`} className="font-semibold text-slate-900 hover:underline">
                     {p.name}
                   </Link>
-                  <button
-                    onClick={() => handleDelete(p.id, p.name)}
-                    className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                    title="삭제"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <Link
+                      href={`/admin/plants/${p.id}/logs`}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                      title="참여자 기록 관리"
+                    >
+                      <Image className="w-4 h-4" />
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(p.id, p.name)}
+                      className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                      title="삭제"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
