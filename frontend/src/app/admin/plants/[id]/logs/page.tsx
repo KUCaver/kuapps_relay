@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Trash2, RefreshCw, ShieldCheck, ShieldX, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Trash2, RefreshCw, ShieldCheck, ShieldX, ShieldAlert, MessageCircle } from 'lucide-react';
 import { getPlantById, getPlantLogs, deleteLog, validateLog } from '@/lib/api';
+import CommentSection from '@/components/CommentSection';
 import type { Plant, PlantLog } from '@/lib/types';
 
 const PLACEHOLDER_IMG = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect fill="%23e2e8f0" width="64" height="64"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-size="24">🌱</text></svg>';
@@ -23,6 +24,7 @@ export default function AdminPlantLogsPage() {
   const [logs, setLogs] = useState<PlantLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedComments, setExpandedComments] = useState<number | null>(null);
 
   const fetchData = () => {
     if (!id) return;
@@ -127,6 +129,22 @@ export default function AdminPlantLogsPage() {
                       </p>
                     )}
                   </div>
+                </div>
+
+                {/* Comments toggle */}
+                <div className="px-4 pb-2">
+                  <button
+                    onClick={() => setExpandedComments(expandedComments === log.id ? null : log.id)}
+                    className="text-[11px] text-slate-400 hover:text-blue-600 flex items-center gap-1 transition"
+                  >
+                    <MessageCircle className="w-3 h-3" />
+                    {expandedComments === log.id ? '댓글 접기' : '댓글 관리'}
+                  </button>
+                  {expandedComments === log.id && (
+                    <div className="mt-2">
+                      <CommentSection logId={log.id} isAdmin={true} />
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}
