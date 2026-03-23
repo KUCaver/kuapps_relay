@@ -8,9 +8,34 @@ export const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 30000, // 30초 타임아웃
   maxBodyLength: 10 * 1024 * 1024,
   maxContentLength: 10 * 1024 * 1024,
 });
+
+// Render 무료 플랜 콜드스타트 대비 자동 재시도 (최대 2회)
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error.config;
+    if (!config || config.__retryCount >= 2) return Promise.reject(error);
+
+    // 네트워크 에러 또는 타임아웃일 때만 재시도
+    const isRetryable =
+      !error.response || // 네트워크 에러 (서버 슬립 중)
+      error.code === 'ECONNABORTED' || // 타임아웃
+      error.response?.status >= 500; // 서버 에러
+
+    if (!isRetryable) return Promise.reject(error);
+
+    config.__retryCount = (config.__retryCount || 0) + 1;
+    console.log(`[API] 재시도 ${config.__retryCount}/2: ${config.url}`);
+
+    // 재시도 전 2초 대기 (서버 깨어나는 시간)
+    await new Promise((r) => setTimeout(r, 2000));
+    return apiClient(config);
+  }
+);
 
 // ===== Plant API =====
 export const getPlants = async (): Promise<Plant[]> => {

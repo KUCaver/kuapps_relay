@@ -47,7 +47,11 @@ export default function LandingPage() {
       <section>
         <h3 className="font-semibold mb-4 text-slate-800">최근 활동 식물</h3>
         {loading ? (
-          <div className="text-center text-slate-400 py-8">로딩 중...</div>
+          <div className="text-center text-slate-400 py-8">
+            <div className="animate-pulse mb-2">🌱</div>
+            <p>서버 연결 중...</p>
+            <p className="text-xs mt-1 text-slate-300">처음 접속 시 최대 30초 정도 걸릴 수 있어요</p>
+          </div>
         ) : error ? (
           <div className="text-center py-8">
             <p className="text-red-500 text-sm mb-3">{error}</p>
