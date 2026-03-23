@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Share2, ArrowRight } from 'lucide-react';
+import { Share2, ArrowRight, Download, Check, Copy } from 'lucide-react';
 import { getLogById, getPlantById } from '@/lib/api';
 import type { Plant, PlantLog } from '@/lib/types';
 
@@ -11,11 +11,14 @@ const PLACEHOLDER_IMG = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/s
 export default function LogCompletePage() {
   const { id } = useParams();
   const router = useRouter();
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const [log, setLog] = useState<PlantLog | null>(null);
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const fetchData = () => {
     if (!id) return;
@@ -30,6 +33,61 @@ export default function LogCompletePage() {
   };
 
   useEffect(() => { fetchData(); }, [id]);
+
+  const handleShare = async () => {
+    setSharing(true);
+    const shareUrl = window.location.href;
+    const shareText = `🌱 ${plant?.name}의 ${log?.guardianOrder}번째 수호자가 되었어요!\n${log?.relayMessage || '오늘의 푸르름을 지켜냈습니다'}`;
+
+    try {
+      // Web Share API (모바일 카톡/인스타/라인 등)
+      if (navigator.share) {
+        await navigator.share({
+          title: `${plant?.name} 수호자 인증`,
+          text: shareText,
+          url: shareUrl,
+        });
+      } else {
+        // PC 브라우저: 링크 복사 fallback
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (err: unknown) {
+      // 사용자가 공유 취소한 경우는 무시
+      if (err instanceof Error && err.name !== 'AbortError') {
+        // clipboard도 실패한 경우 수동 fallback
+        try {
+          await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch {
+          alert(`아래 링크를 복사해주세요:\n${shareUrl}`);
+        }
+      }
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!log?.imageUrl) return;
+    try {
+      const response = await fetch(log.imageUrl);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relay-bloom-${plant?.name}-${log.guardianOrder}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // CORS 제한 시 새 탭에서 열기
+      window.open(log.imageUrl, '_blank');
+    }
+  };
 
   if (loading) return <div className="p-8 text-center text-slate-500">생성 중...</div>;
   if (error) return (
@@ -50,7 +108,7 @@ export default function LogCompletePage() {
       </div>
 
       {/* Guardian Card */}
-      <div className="w-full max-w-sm bg-white p-4 rounded-3xl shadow-xl border border-slate-100 mb-8 transform rotate-1 hover:rotate-0 transition duration-300">
+      <div ref={cardRef} className="w-full max-w-sm bg-white p-4 rounded-3xl shadow-xl border border-slate-100 mb-8 transform rotate-1 hover:rotate-0 transition duration-300">
         <div className="w-full h-64 bg-slate-100 rounded-2xl mb-4 overflow-hidden relative">
           <img
             src={log?.imageUrl || plant?.mainImageUrl || PLACEHOLDER_IMG}
@@ -71,10 +129,25 @@ export default function LogCompletePage() {
       </div>
 
       <div className="w-full max-w-sm flex flex-col gap-3">
-        <button className="w-full bg-slate-100 text-slate-800 font-semibold flex items-center justify-center gap-2 py-3.5 rounded-xl border border-slate-200 active:scale-[0.98] transition hover:bg-slate-200">
-          <Share2 className="w-5 h-5" />
-          카드 공유하기
+        <button
+          onClick={handleShare}
+          disabled={sharing}
+          className="w-full bg-slate-100 text-slate-800 font-semibold flex items-center justify-center gap-2 py-3.5 rounded-xl border border-slate-200 active:scale-[0.98] transition hover:bg-slate-200 disabled:opacity-70"
+        >
+          {copied ? (
+            <><Check className="w-5 h-5 text-green-600" /> 복사 완료!</>
+          ) : (
+            <><Share2 className="w-5 h-5" /> {sharing ? '공유 중...' : '카드 공유하기'}</>
+          )}
         </button>
+        {log?.imageUrl && (
+          <button
+            onClick={handleDownload}
+            className="w-full bg-slate-50 text-slate-600 font-medium flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-200 active:scale-[0.98] transition hover:bg-slate-100 text-sm"
+          >
+            <Download className="w-4 h-4" /> 사진 저장하기
+          </button>
+        )}
         <button
           onClick={() => router.push(`/plants/${plant?.id}`)}
           className="w-full bg-green-600 text-white font-semibold flex items-center justify-center gap-2 py-3.5 rounded-xl shadow-lg shadow-green-600/20 active:scale-[0.98] transition hover:bg-green-700"
