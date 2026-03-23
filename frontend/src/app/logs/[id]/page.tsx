@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Share2, ArrowRight, Download, Check, Copy } from 'lucide-react';
+import { Share2, ArrowRight, Download, Check } from 'lucide-react';
 import { getLogById, getPlantById } from '@/lib/api';
+import ImageLightbox from '@/components/ImageLightbox';
 import type { Plant, PlantLog } from '@/lib/types';
 
 const PLACEHOLDER_IMG = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect fill="%23e2e8f0" width="64" height="64"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-size="24">🌱</text></svg>';
@@ -19,6 +20,7 @@ export default function LogCompletePage() {
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const fetchData = () => {
     if (!id) return;
@@ -102,6 +104,7 @@ export default function LogCompletePage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 flex flex-col items-center justify-center">
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
       <div className="text-center mb-8">
         <h1 className="text-2xl font-bold text-slate-900 mb-2">🎉 업로드 성공!</h1>
         <p className="text-slate-500">당신은 {plant?.name}의<br/><strong className="text-green-600 text-lg">{log?.guardianOrder}번째 수호자</strong>입니다.</p>
@@ -109,7 +112,10 @@ export default function LogCompletePage() {
 
       {/* Guardian Card */}
       <div ref={cardRef} className="w-full max-w-sm bg-white p-4 rounded-3xl shadow-xl border border-slate-100 mb-8 transform rotate-1 hover:rotate-0 transition duration-300">
-        <div className="w-full h-64 bg-slate-100 rounded-2xl mb-4 overflow-hidden relative">
+        <div
+          className="w-full h-64 bg-slate-100 rounded-2xl mb-4 overflow-hidden relative cursor-pointer"
+          onClick={() => setLightboxSrc(log?.imageUrl || plant?.mainImageUrl || null)}
+        >
           <img
             src={log?.imageUrl || plant?.mainImageUrl || PLACEHOLDER_IMG}
             alt="record"

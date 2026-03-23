@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Plant, PlantLog, PlantLogRequest } from './types';
+import type { Plant, PlantLog, PlantLogRequest, Comment } from './types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
@@ -90,4 +90,19 @@ export const deleteLog = async (id: number): Promise<void> => {
 export const validateLog = async (id: number, status: string): Promise<PlantLog> => {
   const response = await apiClient.patch(`/api/admin/logs/${id}/validation`, { status });
   return response.data;
+};
+
+// ===== Comment API =====
+export const getComments = async (logId: number): Promise<Comment[]> => {
+  const response = await apiClient.get(`/api/logs/${logId}/comments`);
+  return response.data;
+};
+
+export const createComment = async (logId: number, nickname: string, content: string): Promise<Comment> => {
+  const response = await apiClient.post(`/api/logs/${logId}/comments`, { nickname, content });
+  return response.data;
+};
+
+export const deleteComment = async (commentId: number): Promise<void> => {
+  await apiClient.delete(`/api/admin/comments/${commentId}`);
 };

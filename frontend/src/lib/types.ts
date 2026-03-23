@@ -29,6 +29,14 @@ export interface PlantLog {
   createdAt: string;
 }
 
+export interface Comment {
+  id: number;
+  plantLogId: number;
+  nickname: string;
+  content: string;
+  createdAt: string;
+}
+
 export interface PlantLogRequest {
   imageUrl: string;
   latitude: number | null;

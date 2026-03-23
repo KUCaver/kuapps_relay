@@ -3,14 +3,24 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Camera, Clock } from 'lucide-react';
+import { ArrowLeft, Camera, Clock, MessageCircle } from 'lucide-react';
 import { getPlantById, getPlantLogs } from '@/lib/api';
 import { PlantStatusBadge } from '@/components/PlantStatusBadge';
+import ImageLightbox from '@/components/ImageLightbox';
+import CommentSection from '@/components/CommentSection';
 import { formatDistanceToNow } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import type { Plant, PlantLog } from '@/lib/types';
 
 const PLACEHOLDER_IMG = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect fill="%23e2e8f0" width="64" height="64"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-size="24">🌱</text></svg>';
+
+function parseDate(dateStr: string): Date {
+  if (dateStr.includes('T') && (dateStr.endsWith('Z') || dateStr.includes('+') || dateStr.includes('-', 10))) {
+    return new Date(dateStr);
+  }
+  // 서버가 timezone 없이 보내면 KST로 해석
+  return new Date(dateStr + '+09:00');
+}
 
 export default function PlantDetailPage() {
   const { id } = useParams();
@@ -19,6 +29,8 @@ export default function PlantDetailPage() {
   const [logs, setLogs] = useState<PlantLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [expandedLog, setExpandedLog] = useState<number | null>(null);
 
   const fetchData = () => {
     if (!id) return;
@@ -51,6 +63,8 @@ export default function PlantDetailPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
+      {lightboxSrc && <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />}
+
       <header className="fixed top-0 w-full max-w-md bg-white/80 backdrop-blur-md z-10 p-4 border-b border-slate-100 flex items-center gap-3">
         <Link href="/" className="p-2 -ml-2 text-slate-600 hover:bg-slate-100 rounded-full transition">
           <ArrowLeft className="w-5 h-5" />
@@ -59,7 +73,10 @@ export default function PlantDetailPage() {
       </header>
 
       <div className="pt-16 relative">
-        <div className="w-full h-64 bg-slate-200">
+        <div
+          className="w-full h-64 bg-slate-200 cursor-pointer"
+          onClick={() => plant.mainImageUrl && setLightboxSrc(plant.mainImageUrl)}
+        >
           <img
             src={plant.mainImageUrl || PLACEHOLDER_IMG}
             alt={plant.name}
@@ -100,12 +117,15 @@ export default function PlantDetailPage() {
                           {log.guardianOrder}번째 수호자
                         </span>
                         <span className="text-[10px] text-slate-400">
-                          {formatDistanceToNow(log.createdAt.endsWith('Z') ? new Date(log.createdAt) : new Date(log.createdAt + '+09:00'), { addSuffix: true, locale: ko })}
+                          {formatDistanceToNow(parseDate(log.createdAt), { addSuffix: true, locale: ko })}
                         </span>
                       </div>
 
                       {log.imageUrl && (
-                        <div className="w-full h-32 bg-slate-200 rounded-lg mb-2 overflow-hidden">
+                        <div
+                          className="w-full h-32 bg-slate-200 rounded-lg mb-2 overflow-hidden cursor-pointer active:scale-[0.98] transition"
+                          onClick={() => setLightboxSrc(log.imageUrl)}
+                        >
                           <img
                             src={log.imageUrl}
                             alt="log"
@@ -122,9 +142,24 @@ export default function PlantDetailPage() {
                       </div>
 
                       {(log.relayMessage || log.issueNote) && (
-                        <p className="text-xs text-slate-700 bg-white p-2 border border-slate-100 rounded-md">
+                        <p className="text-xs text-slate-700 bg-white p-2 border border-slate-100 rounded-md mb-2">
                           {log.relayMessage || log.issueNote}
                         </p>
+                      )}
+
+                      {/* 댓글 토글 */}
+                      <button
+                        onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
+                        className="text-[11px] text-slate-400 hover:text-green-600 flex items-center gap-1 transition"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        {expandedLog === log.id ? '댓글 접기' : '댓글 보기'}
+                      </button>
+
+                      {expandedLog === log.id && (
+                        <div className="mt-3 pt-3 border-t border-slate-100">
+                          <CommentSection logId={log.id} />
+                        </div>
                       )}
                     </div>
                   </div>
