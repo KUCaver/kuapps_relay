@@ -1,26 +1,38 @@
 spring:
   application:
     name: RelayBloom
-  
+
   datasource:
-    # Production Database (Supabase PostgreSQL)
-    url: jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres
+    url: jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:6543/postgres?prepareThreshold=0
     driverClassName: org.postgresql.Driver
     username: "postgres.kqbriwuqfxnryawqjzuh"
     password: "rlaskagnsvosalxld"
-  
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 5
+      idle-timeout: 30000
+      max-lifetime: 600000
+      connection-timeout: 20000
+      keepalive-time: 60000
+      validation-timeout: 5000
+
   sql:
     init:
-      mode: never # 실제 DB에서는 로컬 테스트용 샘플 데이터를 매번 넣지 않도록 비활성화
-      
+      mode: never
+
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
+    open-in-view: false
     properties:
       hibernate:
-        format_sql: true
+        format_sql: false
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
 
 server:
   port: ${PORT:8080}
